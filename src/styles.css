@@ -176,6 +176,12 @@ input {
   color: var(--c-kcal);
 }
 
+.streak-zero {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 13px;
+}
+
 .celebration {
   position: fixed;
   inset: 0;
