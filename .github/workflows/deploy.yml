@@ -36,11 +36,13 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Pages' backend intermittently fails with "try again later" —
-      # one automatic retry has been enough in practice.
+      # Pages' backend intermittently fails with "try again later", and an
+      # immediate retry fails too — it needs a cooldown before the retry.
       - id: deployment
         uses: actions/deploy-pages@v4
         continue-on-error: true
+      - if: steps.deployment.outcome == 'failure'
+        run: sleep 90
       - id: deployment-retry
         if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
