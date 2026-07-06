@@ -1,12 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppState } from "../appState";
-import { dayProgress, fmt, toLoggables } from "../../core/calc";
+import {
+  dayProgress,
+  fmt,
+  ringsClosed,
+  streakLength,
+  sumEntries,
+  toLoggables,
+} from "../../core/calc";
 import { addDays, formatDateKey, todayKey } from "../../core/date";
 import type { Loggable } from "../../core/types";
 import { Rings, MacroStats } from "../components/Rings";
 import { QuickAdd, ServingPicker } from "../components/QuickAdd";
 import { LogList } from "../components/LogList";
 import { Toast, type ToastData } from "../components/Toast";
+import { Celebration } from "../components/Celebration";
+
+/** How far back the streak can reach. */
+const STREAK_LOOKBACK_DAYS = 366;
 
 export function TodayScreen() {
   const {
@@ -19,16 +30,52 @@ export function TodayScreen() {
     entries,
     logFood,
     deleteEntry,
+    getEntriesInRange,
   } = useAppState();
   const [multiplier, setMultiplier] = useState(1);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [streak, setStreak] = useState(0);
+  const [celebrating, setCelebrating] = useState(false);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const progress = dayProgress(entries, targets);
   const loggables = useMemo(() => toLoggables(foods, meals), [foods, meals]);
 
+  // Streak is derived from stored entries, so it survives reloads for free.
+  // `entries` in deps: logging/deleting today can extend or break it.
+  useEffect(() => {
+    let cancelled = false;
+    const today = todayKey();
+    getEntriesInRange(addDays(today, -STREAK_LOOKBACK_DAYS), today).then(
+      (byDay) => {
+        if (!cancelled) setStreak(streakLength(byDay, targets, today));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [getEntriesInRange, targets, entries]);
+
+  useEffect(() => () => clearTimeout(celebrationTimer.current), []);
+
   const handleLog = useCallback(
     async (item: Loggable) => {
+      // Celebrate only when THIS log closes the last ring on the real today
+      // — never when merely viewing an already-closed or past day.
+      const wasClosed = ringsClosed(sumEntries(entries), targets);
       const entry = await logFood(item, multiplier);
+      const nowClosed = ringsClosed(
+        sumEntries([...entries, entry]),
+        targets,
+      );
+      if (dateKey === todayKey() && !wasClosed && nowClosed) {
+        setCelebrating(true);
+        clearTimeout(celebrationTimer.current);
+        celebrationTimer.current = setTimeout(
+          () => setCelebrating(false),
+          2200,
+        );
+      }
       setMultiplier(1); // one-shot multiplier, snap back to 1 serving
       setToast({
         id: entry.id,
@@ -38,7 +85,7 @@ export function TodayScreen() {
         onUndo: () => deleteEntry(entry.id),
       });
     },
-    [logFood, deleteEntry, multiplier],
+    [logFood, deleteEntry, multiplier, entries, targets, dateKey],
   );
 
   return (
@@ -70,6 +117,11 @@ export function TodayScreen() {
 
       <Rings progress={progress} />
       <MacroStats progress={progress} />
+      {streak > 0 && (
+        <p className="streak">
+          🔥 {streak}-day streak — all rings closed
+        </p>
+      )}
 
       <section>
         <ServingPicker value={multiplier} onChange={setMultiplier} />
@@ -92,6 +144,7 @@ export function TodayScreen() {
         />
       </section>
 
+      {celebrating && <Celebration />}
       <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );

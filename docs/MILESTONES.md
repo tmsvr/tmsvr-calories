@@ -102,17 +102,21 @@ PWA with service worker and manifest.
 
 ---
 
+## ✅ M10 — Streaks / ring-close celebration (DONE)
+
+- `RING_BANDS` + `ringsClosed` in `src/core/calc.ts`: a day counts as
+  closed when kcal is 95–110% of target, protein ≥100%, carbs/fat 90–115%
+  (looser than the visual 100% fill on purpose; tweak the constants there).
+- Streak counter under the rings ("🔥 N-day streak"), computed from stored
+  entries via `streakLength` (366-day lookback), so it survives reloads.
+  An in-progress today doesn't break the streak.
+- Confetti burst + "Rings closed!" (`Celebration` component, CSS-only)
+  fires only when a log on the REAL today transitions the day from open to
+  closed — never on past days, never on later logs of an already-closed day.
+
+---
+
 # Future milestones (not started)
-
-## M10 — Streaks / ring-close celebration
-
-**Goal:** make closing rings more satisfying.
-
-- In `core`, add a function computing whether all 4 rings closed for a dateKey (within a tolerance band for calories, e.g. 95–110% counts as closed for kcal; protein ≥100%; fat/carbs 90–115% — confirm bands with the user first).
-- Confetti/scale animation when the last ring closes on Today.
-- Streak counter ("N days all rings closed") shown under the rings.
-
-**Accept:** streak survives reload; no false trigger when viewing past days.
 
 ## M11 — Supabase sync (bolt-on, UI untouched)
 

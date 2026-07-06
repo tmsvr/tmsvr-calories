@@ -6,6 +6,7 @@ import type {
   Meal,
   Targets,
 } from "./types";
+import { addDays } from "./date";
 
 export const EMPTY_MACROS: Macros = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
 
@@ -138,6 +139,50 @@ export function trendAverages(byDay: Record<string, LogEntry[]>): TrendAverages 
 
 /** A day "hits the calorie target" when within this band of the target. */
 export const KCAL_BAND = { lo: 0.9, hi: 1.1 };
+
+/**
+ * Tolerance bands for a day to count as "all rings closed" (streaks and
+ * the celebration). Deliberately looser than the visual 100% ring fill:
+ * on a lean bulk, slightly under on calories or slightly over on carbs/fat
+ * is still a hit day, and protein only has a floor.
+ */
+export const RING_BANDS = {
+  kcal: { lo: 0.95, hi: 1.1 },
+  protein: { lo: 1.0, hi: Infinity },
+  carbs: { lo: 0.9, hi: 1.15 },
+  fat: { lo: 0.9, hi: 1.15 },
+} as const;
+
+/** Whether a day's totals land inside RING_BANDS on all four rings. */
+export function ringsClosed(consumed: Macros, targets: Targets): boolean {
+  return (["kcal", "protein", "carbs", "fat"] as const).every((key) => {
+    if (targets[key] <= 0) return false;
+    const frac = consumed[key] / targets[key];
+    return frac >= RING_BANDS[key].lo && frac <= RING_BANDS[key].hi;
+  });
+}
+
+/**
+ * Consecutive all-rings-closed days ending today — or ending yesterday if
+ * today isn't closed yet (an in-progress day doesn't break the streak).
+ */
+export function streakLength(
+  byDay: Record<string, LogEntry[]>,
+  targets: Targets,
+  today: string,
+): number {
+  const closed = (key: string) => {
+    const list = byDay[key];
+    return !!list && list.length > 0 && ringsClosed(sumEntries(list), targets);
+  };
+  let day = closed(today) ? today : addDays(today, -1);
+  let n = 0;
+  while (closed(day)) {
+    n++;
+    day = addDays(day, -1);
+  }
+  return n;
+}
 
 /** Count of days whose kcal total lands inside KCAL_BAND of the target. */
 export function daysInKcalBand(

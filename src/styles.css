@@ -167,6 +167,79 @@ input {
 .dot-carbs { background: var(--c-carbs); }
 .dot-fat { background: var(--c-fat); }
 
+/* ---------- Streak & celebration ---------- */
+.streak {
+  margin: -6px 0 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-kcal);
+}
+
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.celebration-burst {
+  position: absolute;
+  top: 32%;
+  left: 50%;
+}
+
+.confetti {
+  position: absolute;
+  border-radius: 2px;
+  animation: confetti-burst 1.9s cubic-bezier(0.16, 0.8, 0.4, 1) forwards;
+}
+
+@keyframes confetti-burst {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), calc(var(--dy) + 160px)) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
+.celebration-text {
+  position: absolute;
+  top: 55%;
+  font-size: 20px;
+  font-weight: 800;
+  animation: celebration-text 2.2s ease forwards;
+}
+
+@keyframes celebration-text {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* ---------- Serving picker ---------- */
 .serving-picker {
   display: flex;
