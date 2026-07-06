@@ -1,0 +1,131 @@
+import type {
+  FoodItem,
+  Loggable,
+  LogEntry,
+  Macros,
+  Meal,
+  Targets,
+} from "./types";
+
+export const EMPTY_MACROS: Macros = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+
+/** Total macros consumed for a list of log entries. */
+export function sumEntries(entries: LogEntry[]): Macros {
+  return entries.reduce<Macros>(
+    (acc, e) => ({
+      kcal: acc.kcal + e.perServing.kcal * e.servings,
+      protein: acc.protein + e.perServing.protein * e.servings,
+      carbs: acc.carbs + e.perServing.carbs * e.servings,
+      fat: acc.fat + e.perServing.fat * e.servings,
+    }),
+    EMPTY_MACROS,
+  );
+}
+
+/** Macros for one entry (perServing × servings). */
+export function entryTotal(e: LogEntry): Macros {
+  return {
+    kcal: e.perServing.kcal * e.servings,
+    protein: e.perServing.protein * e.servings,
+    carbs: e.perServing.carbs * e.servings,
+    fat: e.perServing.fat * e.servings,
+  };
+}
+
+/** Progress fraction toward a target. Unclamped (can exceed 1). 0 target => 0. */
+export function progress(consumed: number, target: number): number {
+  if (target <= 0) return 0;
+  return consumed / target;
+}
+
+export interface DayProgress {
+  consumed: Macros;
+  targets: Targets;
+  /** Fractions 0..n for each macro (can exceed 1 when over target). */
+  fractions: Macros;
+  remaining: Macros;
+}
+
+export function dayProgress(entries: LogEntry[], targets: Targets): DayProgress {
+  const consumed = sumEntries(entries);
+  return {
+    consumed,
+    targets,
+    fractions: {
+      kcal: progress(consumed.kcal, targets.kcal),
+      protein: progress(consumed.protein, targets.protein),
+      carbs: progress(consumed.carbs, targets.carbs),
+      fat: progress(consumed.fat, targets.fat),
+    },
+    remaining: {
+      kcal: targets.kcal - consumed.kcal,
+      protein: targets.protein - consumed.protein,
+      carbs: targets.carbs - consumed.carbs,
+      fat: targets.fat - consumed.fat,
+    },
+  };
+}
+
+/** Round for display: whole numbers, no trailing noise from 0.5 servings etc. */
+export function fmt(n: number): string {
+  return String(Math.round(n));
+}
+
+/**
+ * Macros of ONE serving of a meal, summed from its components using the
+ * CURRENT food definitions. Components whose food no longer exists are
+ * skipped (the meal editor surfaces those).
+ */
+export function mealMacros(meal: Meal, foods: FoodItem[]): Macros {
+  const byId = new Map(foods.map((f) => [f.id, f]));
+  return meal.components.reduce<Macros>((acc, c) => {
+    const food = byId.get(c.foodId);
+    if (!food) return acc;
+    return {
+      kcal: acc.kcal + food.kcal * c.servings,
+      protein: acc.protein + food.protein * c.servings,
+      carbs: acc.carbs + food.carbs * c.servings,
+      fat: acc.fat + food.fat * c.servings,
+    };
+  }, EMPTY_MACROS);
+}
+
+/** Meals and foods as one tap-to-log list, meals first-class. */
+export function toLoggables(foods: FoodItem[], meals: Meal[]): Loggable[] {
+  const foodLoggables: Loggable[] = foods.map((f) => ({
+    id: f.id,
+    name: f.name,
+    emoji: f.emoji,
+    servingLabel: f.servingLabel,
+    kcal: f.kcal,
+    protein: f.protein,
+    carbs: f.carbs,
+    fat: f.fat,
+  }));
+  const mealLoggables: Loggable[] = meals.map((m) => ({
+    id: m.id,
+    name: m.name,
+    emoji: m.emoji,
+    isMeal: true,
+    ...mealMacros(m, foods),
+  }));
+  return [...mealLoggables, ...foodLoggables];
+}
+
+/**
+ * Split loggables into the `topN` most-used ("favorites") and the rest.
+ * Popularity = usage count desc; ties keep the given list order.
+ */
+export function splitByPopularity(
+  items: Loggable[],
+  usage: Record<string, number>,
+  topN: number,
+): { top: Loggable[]; rest: Loggable[] } {
+  const ranked = items
+    .map((item, i) => ({ item, count: usage[item.id] ?? 0, i }))
+    .sort((a, b) => b.count - a.count || a.i - b.i);
+  return {
+    top: ranked.slice(0, topN).map((r) => r.item),
+    rest: ranked.slice(topN).map((r) => r.item),
+  };
+}
