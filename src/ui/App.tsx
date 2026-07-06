@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAppState } from "./appState";
+import { useAppState } from "../state/appState";
 import { TodayScreen } from "./screens/TodayScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
 import { FoodsScreen } from "./screens/FoodsScreen";

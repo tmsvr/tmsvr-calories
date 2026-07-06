@@ -21,6 +21,11 @@ export interface FoodItem extends Macros {
   servingLabel?: string;
   /** Sort position in the quick-add grid (lower = earlier). */
   sortOrder: number;
+  /**
+   * Epoch ms of the last write. Maintained by the store, never by UI code;
+   * exists so a future sync layer can do last-write-wins.
+   */
+  updatedAt?: number;
 }
 
 /** One ingredient of a meal: a base food and how many servings of it. */
@@ -40,6 +45,8 @@ export interface Meal {
   emoji?: string;
   components: MealComponent[];
   sortOrder: number;
+  /** Epoch ms of the last write. Maintained by the store (see FoodItem). */
+  updatedAt?: number;
 }
 
 /**
@@ -74,7 +81,10 @@ export interface LogEntry {
 }
 
 /** Daily targets, manually set by the user. */
-export interface Targets extends Macros {}
+export interface Targets extends Macros {
+  /** Epoch ms of the last write. Maintained by the store (see FoodItem). */
+  updatedAt?: number;
+}
 
 export const DEFAULT_TARGETS: Targets = {
   kcal: 3150,

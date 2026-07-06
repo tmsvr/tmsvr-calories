@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAppState } from "../appState";
+import { useAppState } from "../../state/appState";
 import type { FoodItem, Meal } from "../../core/types";
 import { newId } from "../../core/id";
 import { fmt, mealMacros } from "../../core/calc";

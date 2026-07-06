@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useAppState } from "../appState";
+import { useAppState } from "../../state/appState";
 import type { ExportedData } from "../../core/store";
 import type { Targets } from "../../core/types";
 

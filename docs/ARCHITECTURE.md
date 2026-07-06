@@ -10,38 +10,67 @@ src/
   core/       Pure TypeScript. NO React, NO DOM, NO browser APIs
               (except optional crypto.randomUUID feature-detect in id.ts).
               Types, domain math, date helpers, the DataStore interface,
-              seed data. This folder is designed to be copied verbatim
-              into a future React Native app.
+              seed data. Copied verbatim into a future React Native app.
 
-  storage/    DataStore implementations. Currently LocalStorageStore.
-              A Supabase (or other remote) store is added here later.
+  state/      React but NO DOM/browser APIs. appState.tsx: the single
+              context/provider holding targets, foods, meals, usage, the
+              selected day and its entries. Also reused verbatim in a
+              React Native app — anything added here must stay free of
+              document/window/localStorage/Blob etc.
 
-  ui/         React. Talks ONLY to the DataStore interface — never to
-              localStorage directly.
-    appState.tsx      Single context/provider holding targets, foods,
-                      selected day, and that day's entries.
-    components/       Rings, QuickAdd grid, LogList, Toast.
-    screens/          TodayScreen, FoodsScreen, SettingsScreen.
+  storage/    DataStore implementations. Currently LocalStorageStore
+              (web). An RN app adds an AsyncStorage/SQLite one; Supabase
+              sync wraps a local store (see below).
+
+  ui/         React DOM. Web-only rendering: screens, components, CSS.
+              Talks ONLY to state/ and core/ — never to storage/.
 ```
 
-## Rules that keep the two future swaps cheap
+Dependency direction: `ui → state → core` and `main.tsx → storage → core`.
+`main.tsx` is the only file that touches `storage/`.
 
-1. **Storage swap (→ Supabase):** the `DataStore` interface
-   (`src/core/store.ts`) is fully async. UI code must never import from
-   `src/storage/` — the concrete store is injected once in
-   `src/main.tsx`. To add sync: implement `DataStore` against Supabase,
-   swap the one constructor call.
+## Supabase integration plan (backend, database, auth)
 
-2. **UI swap (→ React Native):** nothing in `src/core/` may import React
-   or touch the DOM. All domain math (`calc.ts`), date handling
-   (`date.ts`), and types live there. The RN app would reuse `core/`
-   as-is, implement an AsyncStorage/SQLite `DataStore`, and rebuild only
-   the view layer.
+The rule that makes this cheap: **Supabase is a sync layer, not a store
+replacement.** Do NOT point the UI at a network-backed DataStore — that
+breaks offline use and forces error handling into every screen.
+
+- `SyncedStore implements DataStore` in `src/storage/`, wrapping
+  `LocalStorageStore` (or the RN store). Reads always serve local data.
+  Writes go local-first, then enqueue an op (upsert/delete + entity + id)
+  in a persisted outbox that is pushed to Supabase in the background;
+  deletions propagate as ops, so no tombstone columns are needed locally.
+- Pull on launch/foreground; conflict resolution is last-write-wins using
+  the `updatedAt` stamp that `LocalStorageStore` already writes on every
+  food/meal/targets mutation (entries are immutable — insert/delete only).
+- Tables mirror the stored shapes 1:1 (`foods`, `meals`, `entries` keyed
+  by the existing UUID ids, `targets` single row per user), each with a
+  `user_id` column and row-level security `user_id = auth.uid()`.
+  `ExportedData` doubles as the initial-upload payload for migrating a
+  device's existing data into a fresh account.
+- Auth is NOT part of `DataStore` (keep it data-only). Add a separate
+  small interface (e.g. `AuthProvider`: signIn/signOut/currentUser/
+  onChange) implemented against supabase-js; only Settings talks to it.
+- Swap point stays `src/main.tsx`: construct local store, wrap in
+  `SyncedStore` when the user has signed in.
+
+## React Native plan
+
+`core/` and `state/` move as-is (both are verified free of DOM/browser
+APIs). The RN app implements `DataStore` over AsyncStorage or expo-sqlite,
+injects it into `AppStateProvider` exactly like `main.tsx` does, and
+rebuilds only `ui/` (rings via react-native-svg — the SVG math in
+`Rings.tsx` transfers almost directly). JSON export/import moves data
+between web and native.
 
 ## Data model decisions
 
 - **Log entries snapshot macros** (`perServing` copied from the food at
-  log time). Editing or deleting a food never changes past days.
+  log time). Editing or deleting a food never changes past days. Entries
+  are immutable: created and deleted, never edited.
+- **Mutable records carry `updatedAt`** (foods, meals, targets), stamped
+  by the store on every write — UI code never sets it. This is the
+  last-write-wins key for future sync.
 - **Meals are composites of foods** (`components: {foodId, servings}[]`).
   Their macros are computed from the CURRENT food definitions when
   displayed and when logged (then snapshotted into the entry). A meal

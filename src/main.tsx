@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
-import { AppStateProvider } from "./ui/appState";
+import { AppStateProvider } from "./state/appState";
 import { LocalStorageStore } from "./storage/localStorageStore";
 import "./styles.css";
 

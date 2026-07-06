@@ -121,31 +121,42 @@ PWA with service worker and manifest.
 ## M11 — Supabase sync (bolt-on, UI untouched)
 
 **Goal:** optional cloud backup/sync without changing any UI code.
+Follow the "Supabase integration plan" in ARCHITECTURE.md — it is the
+spec; the points below are the checklist.
 
-- New `src/storage/supabaseStore.ts` implementing `DataStore`.
-- Tables mirror the stored shapes: `targets` (single row per user), `foods`, `meals`, `entries` (indexed on `date_key`), plus usage counts. Use Supabase anon auth or magic link — decide with the user.
-- Keep `LocalStorageStore` as offline cache; simplest viable model: local-first writes, background push, pull-on-launch with last-write-wins. Do NOT build conflict UI.
+- `SyncedStore implements DataStore` in `src/storage/`, WRAPPING the local
+  store (never replacing it): reads stay local, writes go local-first and
+  enqueue ops in a persisted outbox pushed in the background. Pull on
+  launch; last-write-wins via the existing `updatedAt` stamps; entries are
+  insert/delete only. No conflict UI.
+- Tables mirror stored shapes 1:1 with `user_id` + RLS (`auth.uid()`);
+  `entries` indexed on `(user_id, date_key)`. Reuse `ExportedData` as the
+  initial-upload payload. Usage counts sync last-write-wins (approximate
+  is fine).
+- Auth via a separate `AuthProvider` interface (signIn/signOut/
+  currentUser/onChange) — NOT added to `DataStore`. Magic link or anon
+  auth — decide with the user.
 - The only UI change allowed: a Settings section for sign-in/sync status.
 - Swap point stays `src/main.tsx`.
 
-**Accept:** existing screens unchanged (git diff proves it, minus Settings); app still fully works offline.
+**Accept:** existing screens unchanged (git diff proves it, minus Settings); app still fully works offline; airplane-mode logging syncs when back online.
 
 ## M12 — React Native port (separate app)
 
-**Goal:** native iOS app reusing `src/core/` verbatim.
+**Goal:** native iOS app reusing `src/core/` AND `src/state/` verbatim.
 
-- New repo/workspace with Expo. Copy or (better) extract `src/core/` into a shared package.
-- Implement `DataStore` over AsyncStorage (or expo-sqlite).
-- Rebuild the four screens (Today, History, Foods, Settings) with RN components; rings via `react-native-svg` (the SVG math in `Rings.tsx` transfers almost directly).
+- New repo/workspace with Expo. Copy or (better) extract `src/core/` and `src/state/` into a shared package — both are verified free of DOM/browser APIs.
+- Implement `DataStore` over AsyncStorage (or expo-sqlite); inject into `AppStateProvider` like `src/main.tsx` does.
+- Rebuild only the four screens (Today, History, Foods, Settings) with RN components; rings via `react-native-svg` (the SVG math in `Rings.tsx` transfers almost directly).
 
-**Accept:** `core/` files are byte-identical to the web versions; a JSON export from the web app imports cleanly.
+**Accept:** `core/` and `state/` files are byte-identical to the web versions; a JSON export from the web app imports cleanly.
 
 ---
 
 # Agent working rules (for anyone picking up a milestone)
 
-1. `src/core/` must stay free of React/DOM/browser imports. If your change needs new logic, put the math in `core`, the rendering in `ui`.
-2. UI components never import from `src/storage/` — only `src/main.tsx` chooses the store.
+1. `src/core/` must stay free of React/DOM/browser imports, and `src/state/` free of DOM/browser imports (React is fine there). If your change needs new logic, put the math in `core`, shared React state in `state`, the rendering in `ui`.
+2. UI components never import from `src/storage/` — only `src/main.tsx` chooses the store. `updatedAt` on foods/meals/targets is stamped by the store; never set it from UI code.
 3. Any storage format change bumps `SCHEMA_VERSION` and handles reading the old format (or migrating it) in the store. New default foods are just appended to the seed lists in `src/core/seed.ts` — the offered-names ledger delivers them to existing installs; never add a version marker for seeds.
 4. Log entries are immutable history: never recompute their macros from current foods.
 5. No new runtime dependencies without a strong reason — the app's value is being small and fast.

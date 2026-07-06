@@ -87,7 +87,7 @@ export class LocalStorageStore implements DataStore {
   }
 
   async setTargets(targets: Targets): Promise<void> {
-    write(TARGETS_KEY, targets);
+    write(TARGETS_KEY, { ...targets, updatedAt: Date.now() });
   }
 
   async getFoods(): Promise<FoodItem[]> {
@@ -97,9 +97,10 @@ export class LocalStorageStore implements DataStore {
 
   async saveFood(food: FoodItem): Promise<void> {
     const foods = read<FoodItem[]>(FOODS_KEY) ?? [];
+    const stamped = { ...food, updatedAt: Date.now() };
     const idx = foods.findIndex((f) => f.id === food.id);
-    if (idx >= 0) foods[idx] = food;
-    else foods.push(food);
+    if (idx >= 0) foods[idx] = stamped;
+    else foods.push(stamped);
     write(FOODS_KEY, foods);
   }
 
@@ -123,9 +124,10 @@ export class LocalStorageStore implements DataStore {
 
   async saveMeal(meal: Meal): Promise<void> {
     const meals = read<Meal[]>(MEALS_KEY) ?? [];
+    const stamped = { ...meal, updatedAt: Date.now() };
     const idx = meals.findIndex((m) => m.id === meal.id);
-    if (idx >= 0) meals[idx] = meal;
-    else meals.push(meal);
+    if (idx >= 0) meals[idx] = stamped;
+    else meals.push(stamped);
     write(MEALS_KEY, meals);
   }
 
