@@ -91,16 +91,18 @@ PWA with service worker and manifest.
 
 ---
 
+## ✅ M9 — Trends / averages (DONE)
+
+- Trends card above the History calendar: 7-day and 30-day rolling averages
+  for kcal and protein (only days with logs count toward the average; the
+  "Nd logged" note shows the denominator), plus "on target" day count for
+  the visible month (kcal within `KCAL_BAND`, 90–110% of target).
+- Math in `src/core/calc.ts` (`trendAverages`, `daysInKcalBand`), UI only
+  renders. Reuses `getEntriesInRange`.
+
+---
+
 # Future milestones (not started)
-
-## M9 — Trends / averages
-
-**Goal:** numbers on top of the History calendar.
-
-- 7-day and 30-day averages for kcal and protein shown above/below the calendar (math in `src/core/calc.ts`, reuse `getEntriesInRange`).
-- Count of "days within calorie target band" for the visible month.
-
-**Accept:** averages match manual calculation; build passes.
 
 ## M10 — Streaks / ring-close celebration
 

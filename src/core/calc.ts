@@ -112,6 +112,46 @@ export function toLoggables(foods: FoodItem[], meals: Meal[]): Loggable[] {
   return [...mealLoggables, ...foodLoggables];
 }
 
+export interface TrendAverages {
+  kcal: number;
+  protein: number;
+  /** How many days in the window actually had logs (the denominator). */
+  loggedDays: number;
+}
+
+/**
+ * Average kcal/protein per day across the given days, counting only days
+ * that have at least one entry (an unlogged day is missing data, not a
+ * zero-calorie day).
+ */
+export function trendAverages(byDay: Record<string, LogEntry[]>): TrendAverages {
+  const dayTotals = Object.values(byDay)
+    .filter((list) => list.length > 0)
+    .map(sumEntries);
+  if (dayTotals.length === 0) return { kcal: 0, protein: 0, loggedDays: 0 };
+  return {
+    kcal: dayTotals.reduce((a, t) => a + t.kcal, 0) / dayTotals.length,
+    protein: dayTotals.reduce((a, t) => a + t.protein, 0) / dayTotals.length,
+    loggedDays: dayTotals.length,
+  };
+}
+
+/** A day "hits the calorie target" when within this band of the target. */
+export const KCAL_BAND = { lo: 0.9, hi: 1.1 };
+
+/** Count of days whose kcal total lands inside KCAL_BAND of the target. */
+export function daysInKcalBand(
+  byDay: Record<string, LogEntry[]>,
+  targets: Targets,
+): number {
+  if (targets.kcal <= 0) return 0;
+  return Object.values(byDay).filter((list) => {
+    if (list.length === 0) return false;
+    const frac = sumEntries(list).kcal / targets.kcal;
+    return frac >= KCAL_BAND.lo && frac <= KCAL_BAND.hi;
+  }).length;
+}
+
 /**
  * Split loggables into the `topN` most-used ("favorites") and the rest.
  * Popularity = usage count desc; ties keep the given list order.

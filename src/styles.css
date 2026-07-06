@@ -586,6 +586,43 @@ input {
   font-weight: 700;
 }
 
+/* ---------- History trends ---------- */
+.trends {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.trend-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.trend-label {
+  color: var(--text-dim);
+  width: 82px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.trend-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-note {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 /* ---------- History calendar ---------- */
 .calendar {
   display: flex;
