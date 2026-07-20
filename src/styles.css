@@ -325,6 +325,7 @@ input {
 .quick-search-row {
   display: flex;
   gap: 8px;
+  scroll-margin-top: 8px;
 }
 
 .quick-search {

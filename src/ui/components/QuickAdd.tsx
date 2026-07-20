@@ -108,6 +108,13 @@ export function QuickAdd({
           placeholder="Search all foods & meals…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={(e) => {
+            const target = e.currentTarget;
+            target.scrollIntoView({ block: "start", behavior: "smooth" });
+            setTimeout(() => {
+              target.scrollIntoView({ block: "start", behavior: "smooth" });
+            }, 250);
+          }}
         />
         {!searching && rest.length > 0 && (
           <button
