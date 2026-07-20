@@ -151,8 +151,9 @@ export function TodayScreen() {
             </button>
           </div>
           <p className="hint" style={{ margin: "0 0 8px" }}>
-            {MACRO_LABEL[suggestions[0].reason]} is behind — these would
-            help:
+            {MACRO_LABEL[suggestions[0].reason]}
+            {suggestions[0].reason === "carbs" ? " are" : " is"} behind — these
+            would help:
           </p>
           <div className="suggestions">
             {suggestions.map(({ item, reason }) => (
