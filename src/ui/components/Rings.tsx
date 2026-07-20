@@ -40,6 +40,12 @@ function Ring({
   const circumference = 2 * Math.PI * radius;
   const shown = Math.min(fraction, 1);
   const closed = fraction >= 1;
+  const overflow = fraction > 1 ? Math.min(fraction - 1, 1) : 0;
+
+  const angleRad = ((-90 + 360 * overflow) * Math.PI) / 180;
+  const markerX = center + radius * Math.cos(angleRad);
+  const markerY = center + radius * Math.sin(angleRad);
+
   return (
     <g>
       <circle
@@ -66,6 +72,35 @@ function Ring({
           filter: glow && closed ? `drop-shadow(0 0 6px ${color})` : undefined,
         }}
       />
+      {overflow > 0 && (
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - overflow)}
+          transform={`rotate(-90 ${center} ${center})`}
+          style={{
+            transition: "stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+            // Same color as the base lap; the drop shadow separates the
+            // overlapping lap from the one beneath, Apple Fitness style.
+            filter: `drop-shadow(0 0 ${Math.max(stroke * 0.2, 1.5)}px rgba(0, 0, 0, 0.6))`,
+          }}
+        />
+      )}
+      {overflow > 0 && stroke >= 8 && (
+        <circle
+          cx={markerX}
+          cy={markerY}
+          r={stroke * 0.5}
+          fill="#fff"
+          stroke="none"
+        />
+      )}
     </g>
   );
 }
@@ -134,9 +169,8 @@ export function MacroStats({ progress }: { progress: DayProgress }) {
   return (
     <div className="macro-stats">
       {stats.map((s) => (
-        <div key={s.key} className="macro-stat">
+        <div key={s.key} className="macro-stat" title={s.label}>
           <span className={`dot dot-${s.cls}`} />
-          <span className="macro-stat-label">{s.label}</span>
           <span className="macro-stat-value">
             {fmt(consumed[s.key])}
             <span className="macro-stat-target">
