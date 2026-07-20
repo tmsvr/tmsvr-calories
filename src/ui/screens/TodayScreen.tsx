@@ -117,16 +117,10 @@ export function TodayScreen() {
 
       <Rings progress={progress} />
       <MacroStats progress={progress} />
-      {streak > 0 ? (
+      {streak > 0 && (
         <p className="streak">
           🔥 {streak}-day streak — all rings closed
         </p>
-      ) : (
-        dateKey === todayKey() && (
-          <p className="streak streak-zero">
-            Close all rings to start a streak 🔥
-          </p>
-        )
       )}
 
       <section>

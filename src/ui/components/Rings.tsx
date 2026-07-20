@@ -134,9 +134,8 @@ export function MacroStats({ progress }: { progress: DayProgress }) {
   return (
     <div className="macro-stats">
       {stats.map((s) => (
-        <div key={s.key} className="macro-stat">
+        <div key={s.key} className="macro-stat" title={s.label}>
           <span className={`dot dot-${s.cls}`} />
-          <span className="macro-stat-label">{s.label}</span>
           <span className="macro-stat-value">
             {fmt(consumed[s.key])}
             <span className="macro-stat-target">

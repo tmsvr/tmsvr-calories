@@ -129,21 +129,21 @@ input {
 }
 
 .macro-stats {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0 auto;
+  max-width: 360px;
 }
 
 .macro-stat {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.macro-stat-label {
-  color: var(--text-dim);
+  justify-content: center;
+  gap: 4px;
+  padding: 3px 4px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .macro-stat-value {
@@ -174,12 +174,6 @@ input {
   font-size: 14px;
   font-weight: 700;
   color: var(--c-kcal);
-}
-
-.streak-zero {
-  color: var(--text-dim);
-  font-weight: 600;
-  font-size: 13px;
 }
 
 .celebration {
