@@ -86,7 +86,9 @@ function Ring({
           transform={`rotate(-90 ${center} ${center})`}
           style={{
             transition: "stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
-            filter: "brightness(1.35)",
+            // Same color as the base lap; the drop shadow separates the
+            // overlapping lap from the one beneath, Apple Fitness style.
+            filter: `drop-shadow(0 0 ${Math.max(stroke * 0.2, 1.5)}px rgba(0, 0, 0, 0.6))`,
           }}
         />
       )}
