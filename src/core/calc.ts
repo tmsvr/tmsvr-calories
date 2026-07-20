@@ -116,12 +116,14 @@ export function toLoggables(foods: FoodItem[], meals: Meal[]): Loggable[] {
 export interface TrendAverages {
   kcal: number;
   protein: number;
+  carbs: number;
+  fat: number;
   /** How many days in the window actually had logs (the denominator). */
   loggedDays: number;
 }
 
 /**
- * Average kcal/protein per day across the given days, counting only days
+ * Average macros per day across the given days, counting only days
  * that have at least one entry (an unlogged day is missing data, not a
  * zero-calorie day).
  */
@@ -129,10 +131,14 @@ export function trendAverages(byDay: Record<string, LogEntry[]>): TrendAverages 
   const dayTotals = Object.values(byDay)
     .filter((list) => list.length > 0)
     .map(sumEntries);
-  if (dayTotals.length === 0) return { kcal: 0, protein: 0, loggedDays: 0 };
+  if (dayTotals.length === 0) {
+    return { kcal: 0, protein: 0, carbs: 0, fat: 0, loggedDays: 0 };
+  }
   return {
     kcal: dayTotals.reduce((a, t) => a + t.kcal, 0) / dayTotals.length,
     protein: dayTotals.reduce((a, t) => a + t.protein, 0) / dayTotals.length,
+    carbs: dayTotals.reduce((a, t) => a + t.carbs, 0) / dayTotals.length,
+    fat: dayTotals.reduce((a, t) => a + t.fat, 0) / dayTotals.length,
     loggedDays: dayTotals.length,
   };
 }
@@ -182,6 +188,113 @@ export function streakLength(
     day = addDays(day, -1);
   }
   return n;
+}
+
+/**
+ * Longest run of consecutive all-rings-closed days within [fromKey, toKey]
+ * (inclusive). Unlike `streakLength`, this scans a fixed window rather than
+ * walking backward from today, so it can find a best streak anywhere in it.
+ */
+export function bestStreak(
+  byDay: Record<string, LogEntry[]>,
+  targets: Targets,
+  fromKey: string,
+  toKey: string,
+): number {
+  let best = 0;
+  let current = 0;
+  let day = fromKey;
+  while (day <= toKey) {
+    const list = byDay[day];
+    if (list && list.length > 0 && ringsClosed(sumEntries(list), targets)) {
+      current++;
+      best = Math.max(best, current);
+    } else {
+      current = 0;
+    }
+    day = addDays(day, 1);
+  }
+  return best;
+}
+
+export interface MacroAdherence {
+  protein: number;
+  carbs: number;
+  fat: number;
+  kcal: number;
+  /** How many logged days the percentages are computed over. */
+  loggedDays: number;
+}
+
+/**
+ * For each macro, the percentage of logged days in `byDay` whose fraction
+ * of target landed inside that macro's RING_BANDS band. Days with no
+ * entries are excluded from the denominator.
+ */
+export function macroAdherence(
+  byDay: Record<string, LogEntry[]>,
+  targets: Targets,
+): MacroAdherence {
+  const dayTotals = Object.values(byDay).filter((list) => list.length > 0);
+  const loggedDays = dayTotals.length;
+  if (loggedDays === 0) {
+    return { protein: 0, carbs: 0, fat: 0, kcal: 0, loggedDays: 0 };
+  }
+  const pct = (key: keyof Macros) => {
+    if (targets[key] <= 0) return 0;
+    const hits = dayTotals.filter((list) => {
+      const total = sumEntries(list);
+      const frac = total[key] / targets[key];
+      return frac >= RING_BANDS[key].lo && frac <= RING_BANDS[key].hi;
+    }).length;
+    return (hits / loggedDays) * 100;
+  };
+  return {
+    protein: pct("protein"),
+    carbs: pct("carbs"),
+    fat: pct("fat"),
+    kcal: pct("kcal"),
+    loggedDays,
+  };
+}
+
+export interface TopFood {
+  foodName: string;
+  emoji?: string;
+  count: number;
+  totalKcal: number;
+}
+
+/**
+ * The most-logged food names across all entries in `byDay`, ranked by log
+ * count desc, ties broken by total kcal desc. Entries are grouped by
+ * `foodName` (not foodId) so renamed/recreated foods still merge sensibly.
+ */
+export function topFoods(
+  byDay: Record<string, LogEntry[]>,
+  limit: number,
+): TopFood[] {
+  const byName = new Map<string, TopFood>();
+  for (const list of Object.values(byDay)) {
+    for (const e of list) {
+      const existing = byName.get(e.foodName);
+      const kcal = e.perServing.kcal * e.servings;
+      if (existing) {
+        existing.count += 1;
+        existing.totalKcal += kcal;
+      } else {
+        byName.set(e.foodName, {
+          foodName: e.foodName,
+          emoji: e.emoji,
+          count: 1,
+          totalKcal: kcal,
+        });
+      }
+    }
+  }
+  return Array.from(byName.values())
+    .sort((a, b) => b.count - a.count || b.totalKcal - a.totalKcal)
+    .slice(0, limit);
 }
 
 /** Count of days whose kcal total lands inside KCAL_BAND of the target. */

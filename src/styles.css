@@ -697,6 +697,77 @@ input {
   white-space: nowrap;
 }
 
+.trend-value-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.trend-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- History stats cards ---------- */
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.stats-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.adherence-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.adherence-cell {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.adherence-label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.adherence-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.top-foods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.top-food-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
 /* ---------- History calendar ---------- */
 .calendar {
   display: flex;

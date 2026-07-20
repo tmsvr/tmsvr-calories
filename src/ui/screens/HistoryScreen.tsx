@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppState } from "../../state/appState";
 import {
+  bestStreak,
   dayProgress,
   daysInKcalBand,
   fmt,
   KCAL_BAND,
+  macroAdherence,
+  topFoods,
   trendAverages,
 } from "../../core/calc";
 import {
@@ -52,6 +55,12 @@ export function HistoryScreen({ onOpenDay }: { onOpenDay: (dateKey: string) => v
     () => daysInKcalBand(days, targets),
     [days, targets],
   );
+  const best30 = useMemo(
+    () => bestStreak(recent, targets, addDays(today, -29), today),
+    [recent, targets, today],
+  );
+  const adherence = useMemo(() => macroAdherence(recent, targets), [recent, targets]);
+  const favorites = useMemo(() => topFoods(recent, 5), [recent]);
 
   // `entries`/`dateKey` in deps: re-fetch after logging/deleting so the
   // calendar is fresh when the user tabs back.
@@ -97,22 +106,36 @@ export function HistoryScreen({ onOpenDay }: { onOpenDay: (dateKey: string) => v
       <section className="card trends">
         <div className="trend-row">
           <span className="trend-label">7-day avg</span>
-          <span className="trend-value">
-            {avg7.loggedDays > 0
-              ? `${fmt(avg7.kcal)} kcal · ${fmt(avg7.protein)}g protein`
-              : "no logs yet"}
-          </span>
+          <div className="trend-value-col">
+            <span className="trend-value">
+              {avg7.loggedDays > 0
+                ? `${fmt(avg7.kcal)} kcal · ${fmt(avg7.protein)}g protein`
+                : "no logs yet"}
+            </span>
+            {avg7.loggedDays > 0 && (
+              <span className="trend-sub">
+                {fmt(avg7.carbs)}g carbs · {fmt(avg7.fat)}g fat
+              </span>
+            )}
+          </div>
           {avg7.loggedDays > 0 && (
             <span className="trend-note">{avg7.loggedDays}d logged</span>
           )}
         </div>
         <div className="trend-row">
           <span className="trend-label">30-day avg</span>
-          <span className="trend-value">
-            {avg30.loggedDays > 0
-              ? `${fmt(avg30.kcal)} kcal · ${fmt(avg30.protein)}g protein`
-              : "no logs yet"}
-          </span>
+          <div className="trend-value-col">
+            <span className="trend-value">
+              {avg30.loggedDays > 0
+                ? `${fmt(avg30.kcal)} kcal · ${fmt(avg30.protein)}g protein`
+                : "no logs yet"}
+            </span>
+            {avg30.loggedDays > 0 && (
+              <span className="trend-sub">
+                {fmt(avg30.carbs)}g carbs · {fmt(avg30.fat)}g fat
+              </span>
+            )}
+          </div>
           {avg30.loggedDays > 0 && (
             <span className="trend-note">{avg30.loggedDays}d logged</span>
           )}
@@ -127,7 +150,53 @@ export function HistoryScreen({ onOpenDay }: { onOpenDay: (dateKey: string) => v
             kcal
           </span>
         </div>
+        <div className="trend-row">
+          <span className="trend-label">Best streak</span>
+          <span className="trend-value">
+            {best30} day{best30 === 1 ? "" : "s"}
+          </span>
+          <span className="trend-note">last 30d</span>
+        </div>
       </section>
+
+      <section className="card stats-card">
+        <h3 className="stats-title">Macro adherence (30d)</h3>
+        <div className="adherence-grid">
+          <div className="adherence-cell">
+            <span className="adherence-label">Protein</span>
+            <span className="adherence-value">{fmt(adherence.protein)}%</span>
+          </div>
+          <div className="adherence-cell">
+            <span className="adherence-label">Carbs</span>
+            <span className="adherence-value">{fmt(adherence.carbs)}%</span>
+          </div>
+          <div className="adherence-cell">
+            <span className="adherence-label">Fat</span>
+            <span className="adherence-value">{fmt(adherence.fat)}%</span>
+          </div>
+          <div className="adherence-cell">
+            <span className="adherence-label">Kcal</span>
+            <span className="adherence-value">{fmt(adherence.kcal)}%</span>
+          </div>
+        </div>
+      </section>
+
+      {favorites.length > 0 && (
+        <section className="card stats-card">
+          <h3 className="stats-title">Top foods (30d)</h3>
+          <ul className="top-foods">
+            {favorites.map((f) => (
+              <li key={f.foodName} className="top-food-row">
+                <span>
+                  {f.emoji ? `${f.emoji} ` : ""}
+                  {f.foodName}
+                </span>
+                <span className="trend-note">×{f.count}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="calendar">
         <div className="calendar-week calendar-head">
