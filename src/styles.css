@@ -270,6 +270,65 @@ input {
   color: #04231f;
 }
 
+/* ---------- Evening boost ---------- */
+.evening-boost {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.evening-boost-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.evening-boost-dismiss {
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestion-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  text-align: left;
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.suggestion-chip:active {
+  transform: scale(0.97);
+}
+
+.suggestion-emoji {
+  font-size: 20px;
+}
+
+.suggestion-name {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+}
+
+.suggestion-detail {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
 /* ---------- Quick add grid ---------- */
 .quick-grid {
   display: grid;

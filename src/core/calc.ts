@@ -310,6 +310,71 @@ export function daysInKcalBand(
   }).length;
 }
 
+export interface FoodSuggestion {
+  item: Loggable;
+  reason: "protein" | "carbs" | "fat";
+}
+
+/**
+ * Suggests foods to help close out lagging macro rings for the rest of the
+ * day. Lagging macros (fractions < 1) are considered most-lagging first;
+ * for each we rank candidate items by macro density (grams per kcal),
+ * skipping items that would blow well past the remaining calorie budget
+ * or that don't contain the macro at all. Picks round-robin across the
+ * lagging macros until `max` unique items are chosen.
+ */
+export function suggestFoods(
+  items: Loggable[],
+  progress: DayProgress,
+  max = 4,
+): FoodSuggestion[] {
+  const { remaining, fractions } = progress;
+  if (remaining.kcal <= 0) return [];
+
+  const macros = (["protein", "carbs", "fat"] as const)
+    .filter((m) => fractions[m] < 1)
+    .sort((a, b) => fractions[a] - fractions[b]);
+
+  if (macros.length === 0) return [];
+
+  const kcalCap = remaining.kcal + 100;
+  const ranked: Record<(typeof macros)[number], Loggable[]> = {
+    protein: [],
+    carbs: [],
+    fat: [],
+  };
+  for (const m of macros) {
+    ranked[m] = items
+      .filter((item) => item[m] > 0 && item.kcal <= kcalCap)
+      .sort((a, b) => b[m] / Math.max(b.kcal, 1) - a[m] / Math.max(a.kcal, 1));
+  }
+
+  const result: FoodSuggestion[] = [];
+  const used = new Set<string>();
+  const cursors: Record<string, number> = {};
+  for (const m of macros) cursors[m] = 0;
+
+  let progressed = true;
+  while (result.length < max && progressed) {
+    progressed = false;
+    for (const m of macros) {
+      if (result.length >= max) break;
+      const list = ranked[m];
+      let i = cursors[m];
+      while (i < list.length && used.has(list[i].id)) i++;
+      if (i < list.length) {
+        used.add(list[i].id);
+        result.push({ item: list[i], reason: m });
+        cursors[m] = i + 1;
+        progressed = true;
+      } else {
+        cursors[m] = i;
+      }
+    }
+  }
+  return result;
+}
+
 /**
  * Split loggables into the `topN` most-used ("favorites") and the rest.
  * Popularity = usage count desc; ties keep the given list order.

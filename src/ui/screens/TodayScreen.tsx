@@ -5,6 +5,7 @@ import {
   fmt,
   ringsClosed,
   streakLength,
+  suggestFoods,
   sumEntries,
   toLoggables,
 } from "../../core/calc";
@@ -36,10 +37,24 @@ export function TodayScreen() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const [streak, setStreak] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const celebrationTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const progress = dayProgress(entries, targets);
   const loggables = useMemo(() => toLoggables(foods, meals), [foods, meals]);
+
+  const suggestions = useMemo(() => {
+    if (new Date().getHours() < 18) return [];
+    if (dateKey !== todayKey()) return [];
+    if (ringsClosed(sumEntries(entries), targets)) return [];
+    return suggestFoods(loggables, progress);
+  }, [entries, targets, loggables, dateKey, progress]);
+
+  const MACRO_LABEL: Record<"protein" | "carbs" | "fat", string> = {
+    protein: "Protein",
+    carbs: "Carbs",
+    fat: "Fat",
+  };
 
   // Streak is derived from stored entries, so it survives reloads for free.
   // `entries` in deps: logging/deleting today can extend or break it.
@@ -121,6 +136,40 @@ export function TodayScreen() {
         <p className="streak">
           🔥 {streak}-day streak — all rings closed
         </p>
+      )}
+
+      {suggestions.length > 0 && !suggestionsDismissed && (
+        <section className="card evening-boost">
+          <div className="evening-boost-header">
+            <h3 className="stats-title">Evening boost 🌙</h3>
+            <button
+              className="evening-boost-dismiss"
+              aria-label="Dismiss"
+              onClick={() => setSuggestionsDismissed(true)}
+            >
+              ×
+            </button>
+          </div>
+          <p className="hint" style={{ margin: "0 0 8px" }}>
+            {MACRO_LABEL[suggestions[0].reason]} is behind — these would
+            help:
+          </p>
+          <div className="suggestions">
+            {suggestions.map(({ item, reason }) => (
+              <button
+                key={item.id}
+                className="suggestion-chip"
+                onClick={() => handleLog(item)}
+              >
+                <span className="suggestion-emoji">{item.emoji ?? "🍽️"}</span>
+                <span className="suggestion-name">{item.name}</span>
+                <span className="suggestion-detail">
+                  +{fmt(item[reason])}g {reason} · {fmt(item.kcal)} kcal
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
       <section>
